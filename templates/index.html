@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>City Route Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app">
+    <section class="map-area" aria-label="City map">
+      <header class="map-head">
+        <h1>City Route Planner</h1>
+        <p id="stats" class="stats" aria-live="polite"></p>
+      </header>
+
+      <div class="map-frame">
+        <svg id="map" role="img" aria-label="Road network. Click two locations to plan a route, or click a road to change its traffic."></svg>
+        <p id="hint" class="hint">Click a location to set your start, then another for your destination.</p>
+      </div>
+
+      <ul class="legend" aria-label="Map legend">
+        <li><span class="sw" style="--c:var(--free)"></span>Free</li>
+        <li><span class="sw" style="--c:var(--light)"></span>Light</li>
+        <li><span class="sw" style="--c:var(--moderate)"></span>Moderate</li>
+        <li><span class="sw" style="--c:var(--heavy)"></span>Heavy</li>
+        <li><span class="sw" style="--c:var(--jam)"></span>Jam</li>
+        <li><span class="sw blocked"></span>Closed</li>
+        <li><span class="ring"></span>Searched by the algorithm</li>
+      </ul>
+    </section>
+
+    <aside class="sheet">
+      <section class="block" aria-labelledby="trip-h">
+        <h2 id="trip-h">Trip</h2>
+        <div class="endpoints">
+          <div class="line-art" aria-hidden="true"><i class="dot from"></i><i class="bar"></i><i class="dot to"></i></div>
+          <div class="fields">
+            <label>
+              <span class="sr">From</span>
+              <select id="from"></select>
+            </label>
+            <label>
+              <span class="sr">To</span>
+              <select id="to"></select>
+            </label>
+          </div>
+          <button id="swap" class="icon-btn" type="button" aria-label="Swap start and destination" title="Swap">&#8645;</button>
+        </div>
+
+        <div class="seg-row">
+          <div class="seg" role="radiogroup" aria-label="Optimise for" id="mode-seg">
+            <button type="button" role="radio" aria-checked="true" data-value="time">Fastest</button>
+            <button type="button" role="radio" aria-checked="false" data-value="distance">Shortest</button>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="Algorithm" id="algo-seg">
+            <button type="button" role="radio" aria-checked="false" data-value="dijkstra">Dijkstra</button>
+            <button type="button" role="radio" aria-checked="false" data-value="astar">A*</button>
+            <button type="button" role="radio" aria-checked="true" data-value="compare">Compare</button>
+          </div>
+        </div>
+
+        <button id="go" class="primary" type="button">Find route</button>
+      </section>
+
+      <section class="block" aria-labelledby="res-h">
+        <h2 id="res-h">Route</h2>
+        <div id="results" aria-live="polite"></div>
+      </section>
+
+      <section class="block" aria-labelledby="road-h">
+        <h2 id="road-h">Road conditions</h2>
+        <div id="road-panel"></div>
+        <div class="city-actions">
+          <button id="rush" type="button" class="ghost">Simulate rush hour</button>
+          <button id="clear" type="button" class="ghost">Clear all traffic</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
