@@ -17,6 +17,7 @@
     selectedKey: null,
     bounds: null,
     scale: MAX_SCALE,
+    view: "diagram",
     defaultTrip: null,
   };
 
@@ -70,6 +71,133 @@
     return { x: PADX + (n.x - minX) * state.scale, y: PADY + (maxY - n.y) * state.scale };
   }
 
+  /* ---------- street map (Leaflet over OpenStreetMap tiles) ---------- */
+  const LEVEL_COLOR = {
+    free: "#2fa36b", light: "#8fbf2f", moderate: "#f0ad1c", heavy: "#ee7a2e",
+    jam: "#d7263d", custom: "#f0ad1c", blocked: "#5e6c7a",
+  };
+  const TIP = {
+    right: { direction: "right", offset: [9, 0] },
+    left: { direction: "left", offset: [-9, 0] },
+    above: { direction: "top", offset: [0, -9] },
+    below: { direction: "bottom", offset: [0, 9] },
+  };
+  const street = { map: null, roads: null, route: null, nodes: null, fitted: false };
+
+  function hasGeo() {
+    const list = Object.values(state.nodes);
+    return typeof L !== "undefined" && list.length > 0 &&
+      list.every((n) => typeof n.lat === "number" && typeof n.lon === "number");
+  }
+
+  const ll = (name) => [state.nodes[name].lat, state.nodes[name].lon];
+
+  function ensureStreet() {
+    if (street.map) return;
+    const m = L.map("street", { zoomSnap: 0.25 });
+    // panes keep roads under the route and the route under the location dots
+    for (const [name, z] of [["roadsPane", 410], ["routePane", 420], ["nodesPane", 430]]) {
+      m.createPane(name).style.zIndex = z;
+    }
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
+    }).addTo(m);
+    street.roads = L.layerGroup().addTo(m);
+    street.route = L.layerGroup().addTo(m);
+    street.nodes = L.layerGroup().addTo(m);
+    street.map = m;
+  }
+
+  function fitStreet() {
+    const points = Object.keys(state.nodes).map(ll);
+    street.map.fitBounds(L.latLngBounds(points), { padding: [48, 48] });
+    street.fitted = true;
+  }
+
+  function streetRoads() {
+    street.roads.clearLayers();
+    for (const r of state.roads) {
+      const pts = [ll(r.a), ll(r.b)];
+      const level = r.blocked ? "blocked" : r.level;
+      const selected = roadKey(r) === state.selectedKey;
+      const status = r.blocked ? "closed" : `${(LEVEL_LABEL[r.level] || "custom").toLowerCase()} traffic`;
+      const base = { pane: "roadsPane", lineCap: "round", interactive: false };
+      L.polyline(pts, { ...base, color: selected ? "#14212e" : "#ffffff", weight: selected ? 12 : 10, opacity: 0.92 }).addTo(street.roads);
+      L.polyline(pts, { ...base, color: LEVEL_COLOR[level] || LEVEL_COLOR.free, weight: 5, opacity: 1, dashArray: r.blocked ? "2 9" : null }).addTo(street.roads);
+      if (r.blocked) {
+        const mid = [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
+        L.marker(mid, {
+          pane: "roadsPane", interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "closed-pin", html: "×", iconSize: [20, 20] }),
+        }).addTo(street.roads);
+      }
+      // wide invisible line on top so thin roads are easy to click
+      const hit = L.polyline(pts, { pane: "roadsPane", color: "#000", weight: 22, opacity: 0, lineCap: "round" }).addTo(street.roads);
+      hit.bindTooltip(`${r.a} to ${r.b}: ${r.length_km} km, limit ${r.speed_limit} km/h, ${status}`, { sticky: true });
+      hit.on("click", () => selectRoad(r));
+    }
+  }
+
+  function streetRoute() {
+    street.route.clearLayers();
+    const res = state.results && state.results[state.shown];
+    if (!res) return;
+    for (const name of res.visited) {
+      L.circleMarker(ll(name), {
+        pane: "routePane", radius: 17, color: "#1747c9", weight: 2, opacity: 0.55,
+        fillColor: "#dfe7fb", fillOpacity: 0.5, interactive: false,
+      }).addTo(street.route);
+    }
+    if (res.found && res.path.length > 1) {
+      const pts = res.path.map(ll);
+      const base = { pane: "routePane", lineCap: "round", lineJoin: "round", interactive: false };
+      L.polyline(pts, { ...base, color: "#ffffff", weight: 14, opacity: 0.95 }).addTo(street.route);
+      L.polyline(pts, { ...base, color: "#1747c9", weight: 8, opacity: 1 }).addTo(street.route);
+    }
+  }
+
+  function streetNodes() {
+    street.nodes.clearLayers();
+    for (const name of Object.keys(state.nodes).sort()) {
+      const isFrom = name === state.start, isTo = name === state.goal;
+      const marker = isFrom || isTo;
+      const dot = L.circleMarker(ll(name), {
+        pane: "nodesPane", radius: marker ? 11 : 7, weight: 3,
+        color: marker ? "#ffffff" : "#14212e",
+        fillColor: isFrom ? "#0d8a5e" : isTo ? "#b4235a" : "#ffffff", fillOpacity: 1,
+      }).addTo(street.nodes);
+      const tip = TIP[state.nodes[name].label] || TIP.below;
+      dot.bindTooltip(name, {
+        permanent: true, direction: tip.direction, offset: tip.offset,
+        className: "node-tip" + (marker ? " strong" : ""),
+      });
+      dot.on("click", () => clickNode(name));
+    }
+  }
+
+  function applyView() {
+    const onStreet = state.view === "street";
+    $("#street").hidden = !onStreet;
+    svg.style.display = onStreet ? "none" : "";
+    for (const b of document.querySelectorAll("#view-seg button")) {
+      b.setAttribute("aria-checked", String(b.dataset.value === state.view));
+    }
+    if (onStreet) {
+      ensureStreet();
+      street.map.invalidateSize();
+      if (!street.fitted) fitStreet();
+    }
+  }
+
+  function setView(view) {
+    state.view = view;
+    applyView();
+    renderRoads();
+    renderOverlay(false);
+    renderNodes();
+  }
+
   /* ---------- map drawing ---------- */
   function setupMap() {
     const xs = Object.values(state.nodes).map((n) => n.x);
@@ -88,6 +216,7 @@
   }
 
   function renderRoads() {
+    if (state.view === "street") { streetRoads(); return; }
     layers.roads.replaceChildren();
     for (const r of state.roads) {
       const p = pt(r.a), q = pt(r.b);
@@ -119,6 +248,7 @@
   }
 
   function renderOverlay(animate) {
+    if (state.view === "street") { streetRoute(); return; }
     layers.overlay.replaceChildren();
     const res = state.results && state.results[state.shown];
     if (!res) return;
@@ -138,6 +268,7 @@
   }
 
   function renderNodes() {
+    if (state.view === "street") { streetNodes(); return; }
     layers.nodes.replaceChildren();
     for (const name of Object.keys(state.nodes).sort()) {
       const p = pt(name);
@@ -384,6 +515,15 @@
     }
 
     setupMap();
+    if (hasGeo()) {
+      state.view = "street";
+      $("#view-seg").hidden = false;
+      $("#view-seg").addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (btn && btn.dataset.value !== state.view) setView(btn.dataset.value);
+      });
+    }
+    applyView();
     const names = Object.keys(state.nodes).sort();
     for (const sel of [$("#from"), $("#to")]) {
       for (const n of names) h("option", "", n, sel).value = n;

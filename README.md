@@ -47,11 +47,18 @@ python app.py                       # then open http://127.0.0.1:5050
 | `app.py` | Flask server: serves the page and a JSON API that reuses the modules above |
 | `templates/index.html` | Page structure |
 | `static/style.css` | Styling |
-| `static/app.js` | Draws the SVG map, calls the API, shows the route and itinerary |
+| `static/app.js` | Draws roads and the route on a street map (or a diagram), calls the API, shows the itinerary |
+| `static/vendor/leaflet/` | Leaflet map library (kept locally, no CDN needed) |
 
 In the browser: click two locations (or use the dropdowns) and press **Find route**.
 Click a road to set its traffic or close it; the route re-plans automatically.
 **Compare** runs Dijkstra and A* side by side and shows how many locations each searched.
+
+## Street map
+The page opens on a real street map of Kolkata (Leaflet + OpenStreetMap tiles). Use the
+**Street map / Diagram** switch above the map to change views. Map tiles need internet;
+without it the roads and route still draw, just without the street background, and the
+Diagram view works fully offline. Map data (c) OpenStreetMap contributors.
 
 ## Ideas to extend
 - Load a real map (OpenStreetMap / OSMnx) instead of `city_data.py`

@@ -374,3 +374,42 @@ select:hover { border-color: #9fb0bf; }
   .search-ring.anim, .route-line.anim { animation: none; opacity: 1; stroke-dashoffset: 0; }
   .toast, .road-line, .node-dot { transition: none; }
 }
+
+/* ---------- street map ---------- */
+.street {
+  position: absolute;
+  left: 12px; right: 12px; top: 4px; bottom: 0;
+  border-radius: 8px;
+  background: var(--ground);
+  z-index: 0;
+}
+.street[hidden] { display: none; }
+.hint { z-index: 800; }
+.view-seg { width: 230px; flex: none; }
+.view-seg[hidden] { display: none; }
+.leaflet-container { font-family: var(--body); }
+
+.leaflet-tooltip.node-tip {
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: none;
+  color: var(--ink);
+  font: 600 13px var(--body);
+}
+.leaflet-tooltip.node-tip.strong { font-weight: 700; background: #fff; }
+.leaflet-tooltip.node-tip::before { display: none; }
+
+.closed-pin {
+  display: grid; place-items: center;
+  width: 20px; height: 20px;
+  border: 2.5px solid var(--closed); border-radius: 50%;
+  background: #fff; color: var(--closed);
+  font: 700 15px/1 var(--body);
+}
+
+@media (max-width: 960px) {
+  .view-seg { width: 100%; }
+  .street { left: 0; right: 0; }
+}

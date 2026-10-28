@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -14,10 +15,15 @@
     <section class="map-area" aria-label="City map">
       <header class="map-head">
         <h1>City Route Planner</h1>
+        <div class="seg view-seg" role="radiogroup" aria-label="Map view" id="view-seg" hidden>
+          <button type="button" role="radio" aria-checked="true" data-value="street">Street map</button>
+          <button type="button" role="radio" aria-checked="false" data-value="diagram">Diagram</button>
+        </div>
         <p id="stats" class="stats" aria-live="polite"></p>
       </header>
 
       <div class="map-frame">
+        <div id="street" class="street" hidden role="application" aria-label="Street map of the city. Click a location to plan a route, or click a road to change its traffic."></div>
         <svg id="map" role="img" aria-label="Road network. Click two locations to plan a route, or click a road to change its traffic."></svg>
         <p id="hint" class="hint">Click a location to set your start, then another for your destination.</p>
       </div>
@@ -83,6 +89,7 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/static/vendor/leaflet/leaflet.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
