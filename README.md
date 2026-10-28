@@ -14,7 +14,8 @@ Needs Python 3.8+ and no extra packages.
 | File | Purpose |
 |---|---|
 | `graph.py` | Graph (adjacency list) + `Edge` class holding length, speed limit, traffic, blocked flag |
-| `city_data.py` | Sample city: 14 locations with coordinates and 22 roads |
+| `city_data.py` | Kolkata map: 25 landmarks with real latitude/longitude and 47 roads |
+| `sample_city.py` | The original small made-up city (optional, for comparison) |
 | `algorithms.py` | `dijkstra()`, `astar()` and the A* heuristic (both use a min-heap) |
 | `traffic.py` | Set traffic level, block roads, random rush-hour simulation |
 | `main.py` | Menu-driven command-line interface |
@@ -29,6 +30,12 @@ Needs Python 3.8+ and no extra packages.
   optimal path because `h` never overestimates.
 - **Traffic:** a multiplier >= 1 slows a road; a blocked road has infinite cost
   and is skipped, so routes change automatically.
+
+## About the Kolkata map
+- Landmarks use their approximate real coordinates (Airport, Howrah, Sealdah, Esplanade, Salt Lake, Garia and more).
+- Each road's length = straight-line (haversine) distance x 1.3 detour factor, so distances are realistic estimates, not surveyed values.
+- Speeds are typical urban speeds per corridor. Edit `LANDMARKS`, `ROADS` and `DETOUR_FACTOR` in `city_data.py` to change the map.
+- To use the old city, change `from city_data import ...` to `from sample_city import ...` (the web labels and default trip need `city_data.py`).
 
 ## Web frontend
 ```

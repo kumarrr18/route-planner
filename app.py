@@ -9,7 +9,7 @@ The city lives in memory, so traffic changes last until the server restarts.
 from flask import Flask, jsonify, render_template, request
 
 from algorithms import astar, dijkstra
-from city_data import build_city
+from city_data import DEFAULT_TRIP, LABEL_SIDE, build_city
 from traffic import LEVELS, block_road, randomize_traffic, reset_traffic, set_traffic
 
 app = Flask(__name__)
@@ -69,9 +69,11 @@ def index():
 @app.route("/api/city")
 def api_city():
     return jsonify({
-        "nodes": [{"name": n, "x": x, "y": y} for n, (x, y) in graph.coords.items()],
+        "nodes": [{"name": n, "x": x, "y": y, "label": LABEL_SIDE.get(n, "below")}
+                  for n, (x, y) in graph.coords.items()],
         "roads": [road_dict(r) for r in graph.roads()],
         "levels": list(LEVELS),
+        "default_trip": list(DEFAULT_TRIP),
     })
 
 

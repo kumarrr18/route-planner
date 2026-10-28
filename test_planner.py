@@ -40,28 +40,28 @@ class TestRoutePlanner(unittest.TestCase):
         self.assertLessEqual(total_a, total_d)
 
     def test_traffic_changes_route(self):
-        before = dijkstra(self.g, "Central Station", "Stadium", "time")
+        before = dijkstra(self.g, "Howrah", "Garia", "time")
         # jam every road on the current route
         for a, b in zip(before.path, before.path[1:]):
             set_traffic(self.g, a, b, "jam")
-        after = dijkstra(self.g, "Central Station", "Stadium", "time")
+        after = dijkstra(self.g, "Howrah", "Garia", "time")
         self.assertGreater(after.cost, before.cost)
 
     def test_blocked_road_is_avoided(self):
-        before = dijkstra(self.g, "Airport", "Central Station", "time")
-        block_road(self.g, "Airport", "Central Station")
-        after = dijkstra(self.g, "Airport", "Central Station", "time")
+        before = dijkstra(self.g, "Airport", "Dum Dum", "time")
+        block_road(self.g, "Airport", "Dum Dum")
+        after = dijkstra(self.g, "Airport", "Dum Dum", "time")
         self.assertTrue(after.found)
         self.assertNotEqual(before.path, after.path)
-        self.assertNotIn(("Airport", "Central Station"),
+        self.assertNotIn(("Airport", "Dum Dum"),
                          list(zip(after.path, after.path[1:])))
 
     def test_unreachable_destination(self):
-        # cut every road out of Beach
-        for nbr in list(self.g.adj["Beach"]):
-            block_road(self.g, "Beach", nbr)
+        # cut every road out of Dakshineswar
+        for nbr in list(self.g.adj["Dakshineswar"]):
+            block_road(self.g, "Dakshineswar", nbr)
         for algo in (dijkstra, astar):
-            r = algo(self.g, "Airport", "Beach")
+            r = algo(self.g, "Airport", "Dakshineswar")
             self.assertFalse(r.found)
             self.assertEqual(r.cost, math.inf)
 

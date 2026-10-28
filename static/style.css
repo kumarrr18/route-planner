@@ -169,7 +169,7 @@ button { cursor: pointer; }
 .node.is-to .node-dot { fill: var(--to); stroke: #fff; stroke-width: 3; }
 .node-letter { fill: #fff; font: 700 13px var(--display); text-anchor: middle; pointer-events: none; }
 .node-label {
-  font: 600 13.5px var(--body); fill: var(--ink); text-anchor: middle;
+  font: 600 13.5px var(--body); fill: var(--ink);
   paint-order: stroke; stroke: var(--ground); stroke-width: 5px; stroke-linejoin: round;
   pointer-events: none;
 }

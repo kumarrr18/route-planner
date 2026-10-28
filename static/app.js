@@ -4,7 +4,7 @@
   "use strict";
 
   const SVGNS = "http://www.w3.org/2000/svg";
-  const SCALE = 58;           // pixels per map km
+  const MAX_SCALE = 58;       // pixels per map km for a small map
   const PADX = 100, PADY = 60;
   const LEVEL_LABEL = { free: "Free", light: "Light", moderate: "Moderate", heavy: "Heavy", jam: "Jam" };
   const ALGO_LABEL = { dijkstra: "Dijkstra", astar: "A*" };
@@ -16,6 +16,8 @@
     results: null, resultMode: "time", shown: "astar",
     selectedKey: null,
     bounds: null,
+    scale: MAX_SCALE,
+    defaultTrip: null,
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -65,7 +67,7 @@
   function pt(name) {
     const n = state.nodes[name];
     const { minX, maxY } = state.bounds;
-    return { x: PADX + (n.x - minX) * SCALE, y: PADY + (maxY - n.y) * SCALE };
+    return { x: PADX + (n.x - minX) * state.scale, y: PADY + (maxY - n.y) * state.scale };
   }
 
   /* ---------- map drawing ---------- */
@@ -73,8 +75,11 @@
     const xs = Object.values(state.nodes).map((n) => n.x);
     const ys = Object.values(state.nodes).map((n) => n.y);
     state.bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
-    const w = (state.bounds.maxX - state.bounds.minX) * SCALE + PADX * 2;
-    const hgt = (state.bounds.maxY - state.bounds.minY) * SCALE + PADY * 2;
+    // big maps get a smaller scale so the whole city fits on screen
+    const spanX = state.bounds.maxX - state.bounds.minX, spanY = state.bounds.maxY - state.bounds.minY;
+    state.scale = Math.min(MAX_SCALE, 640 / Math.max(spanY, spanX * 0.7, 1));
+    const w = spanX * state.scale + PADX * 2;
+    const hgt = spanY * state.scale + PADY * 2;
     svg.setAttribute("viewBox", `0 0 ${w} ${hgt}`);
     svg.replaceChildren();
     layers.roads = el("g", {}, svg);
@@ -148,7 +153,17 @@
       el("circle", { class: "node-hit", cx: p.x, cy: p.y, r: 22 }, g);
       el("circle", { class: "node-dot", cx: p.x, cy: p.y, r: marker ? 13 : 8 }, g);
       if (marker) el("text", { class: "node-letter", x: p.x, y: p.y + 4.5 }, g).textContent = isFrom ? "A" : "B";
-      el("text", { class: "node-label", x: p.x, y: p.y + (marker ? 31 : 26) }, g).textContent = name;
+      const side = state.nodes[name].label || "below";
+      const gap = marker ? 21 : 15;
+      const spot = {
+        below: { x: p.x, y: p.y + (marker ? 31 : 26), anchor: "middle" },
+        above: { x: p.x, y: p.y - (marker ? 22 : 17), anchor: "middle" },
+        right: { x: p.x + gap, y: p.y + 4.5, anchor: "start" },
+        left: { x: p.x - gap, y: p.y + 4.5, anchor: "end" },
+      }[side] || { x: p.x, y: p.y + 26, anchor: "middle" };
+      const label = el("text", { class: "node-label", x: spot.x, y: spot.y }, g);
+      label.setAttribute("text-anchor", spot.anchor);
+      label.textContent = name;
       g.addEventListener("click", () => clickNode(name));
       g.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); clickNode(name); }
@@ -362,6 +377,7 @@
       state.nodes = Object.fromEntries(data.nodes.map((n) => [n.name, n]));
       state.roads = data.roads;
       state.levels = data.levels;
+      state.defaultTrip = data.default_trip;
     } catch (err) {
       $("#results").textContent = "Could not load the city. Is the server running?";
       return;
@@ -393,7 +409,8 @@
     renderResults();
     updateStats();
 
-    setEndpoints("Airport", "Residential East");
+    const trip = state.defaultTrip && state.defaultTrip.length === 2 ? state.defaultTrip : names.slice(0, 2);
+    setEndpoints(trip[0], trip[1]);
     runRoute();
   }
 
